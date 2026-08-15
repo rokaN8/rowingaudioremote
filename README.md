@@ -3,8 +3,11 @@
 BLE media remote for a rowing machine: two buttons, two LEDs, mounted where you can hit them mid-stroke to skip tracks or change volume without touching your phone. Runs on an ESP32-C3 and shows up as a standard Bluetooth HID device — no companion app needed.
 
 <p align="center">
-  <img src="images/front.jpg" width="45%" alt="Front"/>
-  <img src="images/back.jpg" width="45%" alt="Back"/>
+  <img src="images/FrontInstalled.jpg" width="45%" alt="Installed on handle - front"/>
+  <img src="images/BackInstalled.jpg" width="45%" alt="Installed on handle - back"/>
+</p>
+<p align="center">
+  <img src="images/3DModel.png" width="60%" alt="3D model (Fusion)"/>
 </p>
 
 ## Features
@@ -21,7 +24,7 @@ BLE media remote for a rowing machine: two buttons, two LEDs, mounted where you 
 - ESP32-C3 dev board
 - 2x momentary push buttons
 - 2x LED + ~220-330Ω resistor each
-- Enclosure: see [`models/`](models/) for the 3D-printable case
+- Enclosure: [`models/Body.step`](models/Body.step) — clips onto the rowing machine's handle
 
 | Function | GPIO |
 |---|---|
