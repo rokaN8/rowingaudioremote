@@ -24,9 +24,12 @@ BLE media remote for a **Concept2 rowing machine**: two buttons, two LEDs, mount
 - [Seeed Studio XIAO ESP32-C3](https://core-electronics.com.au/seeed-studio-xiao-esp32c3-tiny-mcu-board-with-wi-fi-and-ble-battery-charge-supported-power-efficiency-and-rich-interface.html) — buttons and battery are soldered directly onto this board (no separate protoboard)
 - 2x [16mm illuminated momentary pushbutton (green)](https://core-electronics.com.au/16mm-illuminated-pushbutton-green-momentary.html) — button + LED in one unit
 - [120mAh LiPo battery](https://core-electronics.com.au/lipo-polymer-lithium-ion-battery-120mah.html) — plugs into the XIAO's onboard charge circuit
+- [Breadboard slide switch](https://core-electronics.com.au/breadboard-slide-switch.html) — wired in series with the battery, as the on/off switch
 - Enclosure: [`models/Body.step`](models/Body.step) — clips onto a Concept2 handle, adapted from [Concept2 Rower Handle Media Controller Adapter](https://www.printables.com/model/488265-concept2-rower-handle-media-controller-adapter) on Printables
 
 > The XIAO ESP32-C3 charges the LiPo on-board, but its BLE antenna is **external** — you must fit the u.FL antenna that ships with the board or range will be terrible/nonexistent.
+>
+> The slide switch sits in series with the battery, so it must be in the **on** position for the battery to charge over USB, not just to run the device.
 
 | Function | GPIO |
 |---|---|
@@ -35,7 +38,11 @@ BLE media remote for a **Concept2 rowing machine**: two buttons, two LEDs, mount
 | LED — pairs with GPIO7 button | 21 |
 | LED — pairs with GPIO8 button | 20 |
 
-Wiring: button GPIO → button → GND (internal pullup, active-low). LED GPIO → resistor → LED anode, cathode → GND (active-high). Both polarities are configurable in the sketch if your wiring differs.
+Wiring: button GPIO → button → GND (internal pullup, active-low). LED GPIO → 220Ω resistor → LED anode, cathode → GND (active-high). Both polarities are configurable in the sketch if your wiring differs.
+
+## 3D printing
+
+Printed on a Creality Ender 3 V3 SE, PLA, 10% infill, 3 wall loops, no supports needed, everything else stock slicer defaults. Electronics are hot glued into the body of the print; the assembled unit then clips onto the handle.
 
 ## Install
 
