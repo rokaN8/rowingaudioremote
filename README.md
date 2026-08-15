@@ -1,6 +1,6 @@
 # Rowing Audio Remote
 
-BLE media remote for a rowing machine: two buttons, two LEDs, mounted where you can hit them mid-stroke to skip tracks or change volume without touching your phone. Runs on an ESP32-C3 and shows up as a standard Bluetooth HID device — no companion app needed.
+BLE media remote for a **Concept2 rowing machine**: two buttons, two LEDs, mounted on the handle where you can hit them mid-stroke to skip tracks or change volume without touching your phone. Runs on an ESP32-C3 and shows up as a standard Bluetooth HID device — no companion app needed.
 
 <p align="center">
   <img src="images/FrontInstalled.jpg" width="45%" alt="Installed on handle - front"/>
@@ -21,10 +21,12 @@ BLE media remote for a rowing machine: two buttons, two LEDs, mounted where you 
 
 ## Hardware
 
-- ESP32-C3 dev board
-- 2x momentary push buttons
-- 2x LED + ~220-330Ω resistor each
-- Enclosure: [`models/Body.step`](models/Body.step) — clips onto the rowing machine's handle
+- [Seeed Studio XIAO ESP32-C3](https://core-electronics.com.au/seeed-studio-xiao-esp32c3-tiny-mcu-board-with-wi-fi-and-ble-battery-charge-supported-power-efficiency-and-rich-interface.html) — buttons and battery are soldered directly onto this board (no separate protoboard)
+- 2x [16mm illuminated momentary pushbutton (green)](https://core-electronics.com.au/16mm-illuminated-pushbutton-green-momentary.html) — button + LED in one unit
+- [120mAh LiPo battery](https://core-electronics.com.au/lipo-polymer-lithium-ion-battery-120mah.html) — plugs into the XIAO's onboard charge circuit
+- Enclosure: [`models/Body.step`](models/Body.step) — clips onto a Concept2 handle, adapted from [Concept2 Rower Handle Media Controller Adapter](https://www.printables.com/model/488265-concept2-rower-handle-media-controller-adapter) on Printables
+
+> The XIAO ESP32-C3 charges the LiPo on-board, but its BLE antenna is **external** — you must fit the u.FL antenna that ships with the board or range will be terrible/nonexistent.
 
 | Function | GPIO |
 |---|---|
@@ -49,6 +51,10 @@ Wiring: button GPIO → button → GND (internal pullup, active-low). LED GPIO �
 Power it on, pair `Rowing Remote v2` from your phone/laptop's Bluetooth settings like any keyboard. Tap a button to send the mapped media key. Hold both buttons for 1s to switch modes (LEDs flash to confirm).
 
 To change pins, timings, or the device name, edit the `CONFIG` block at the top of `RowingMachine.ino`.
+
+## Credits
+
+3D model based on [Concept2 Rower Handle Media Controller Adapter](https://www.printables.com/model/488265-concept2-rower-handle-media-controller-adapter) by its original author on Printables.
 
 ## License
 
