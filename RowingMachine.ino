@@ -27,6 +27,14 @@ const unsigned long DEBOUNCE_MS   = 30;
 const unsigned long MODE_HOLD_MS  = 1000;  // hold both buttons this long to switch mode
 const unsigned long SERIAL_BAUD   = 115200;
 const char*         DEVICE_NAME   = "Rowing Remote v2";
+
+// Battery-life tuning: lower CPU clock, wider BLE connection interval (fewer radio wake-ups).
+// Trades button-press latency (worst case ~(BLE_CONN_LATENCY+1) x BLE_CONN_MAX_INTERVAL) for runtime.
+const uint32_t CPU_FREQ_MHZ          = 80;   // down from default 160
+const uint16_t BLE_CONN_MIN_INTERVAL = 80;   // x1.25ms = 100ms
+const uint16_t BLE_CONN_MAX_INTERVAL = 160;  // x1.25ms = 200ms
+const uint16_t BLE_CONN_LATENCY      = 4;    // skip up to 4 connection events
+const uint16_t BLE_CONN_TIMEOUT      = 600;  // x10ms = 6000ms supervision timeout
 // ----------------------------------------
 
 const int NUM_BUTTONS = sizeof(BUTTON_PINS) / sizeof(BUTTON_PINS[0]);
@@ -72,7 +80,10 @@ NimBLEHIDDevice*      hid;
 NimBLECharacteristic* mediaInput;
 
 class ServerCallbacks : public NimBLEServerCallbacks {
-  void onConnect(NimBLEServer*, NimBLEConnInfo&) override { connected = true; }
+  void onConnect(NimBLEServer* server, NimBLEConnInfo& connInfo) override {
+    connected = true;
+    server->updateConnParams(connInfo.getConnHandle(), BLE_CONN_MIN_INTERVAL, BLE_CONN_MAX_INTERVAL, BLE_CONN_LATENCY, BLE_CONN_TIMEOUT);
+  }
   void onDisconnect(NimBLEServer*, NimBLEConnInfo&, int reason) override {
     connected = false;
     Serial.printf("BLE disconnected (reason %d)\n", reason);
@@ -107,6 +118,7 @@ void sendMediaKey(uint16_t usage) {
 }
 
 void setup() {
+  setCpuFrequencyMhz(CPU_FREQ_MHZ);
   Serial.begin(SERIAL_BAUD);
   delay(200);
   Serial.println();

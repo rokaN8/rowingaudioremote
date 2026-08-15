@@ -57,6 +57,12 @@ Printed on a Creality Ender 3 V3 SE, PLA, 10% infill, 3 wall loops, no supports 
 
 Power it on, pair `Rowing Remote v2` from your phone/laptop's Bluetooth settings like any keyboard. Tap a button to send the mapped media key. Hold both buttons for 1s to switch modes (LEDs flash to confirm).
 
+## Battery
+
+On the 120mAh LiPo, unoptimized firmware runs the ESP32-C3 fully active the whole time it's powered on (no sleep, continuous GPIO polling, default BLE connection interval) — roughly **4-8 hours of continuous runtime**. This branch trims that by underclocking the CPU (160→80MHz) and widening the BLE connection interval/latency in the `CONFIG` block, at the cost of up to ~1s of button-press lag. Turning the unit off via the slide switch after each session remains the biggest lever either way, since there's no phantom drain when off.
+
+The largest remaining win — automatic light-sleep between BLE connection events (~1mA idle vs ~20-30mA active) — needs sdkconfig-level changes (`CONFIG_PM_ENABLE`, `CONFIG_FREERTOS_USE_TICKLESS_IDLE`) not exposed by stock Arduino IDE, and hasn't been implemented or tested on hardware. Worth investigating if you want to push runtime further.
+
 To change pins, timings, or the device name, edit the `CONFIG` block at the top of `RowingMachine.ino`.
 
 ## Credits
