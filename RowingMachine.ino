@@ -1,5 +1,7 @@
 #include <NimBLEDevice.h>
 #include <NimBLEHIDDevice.h>
+#include "esp_sleep.h"
+#include "driver/gpio.h"
 
 // ESP32-C3 BLE media remote — native NimBLE-Arduino (2.x) HID, no BleKeyboard lib.
 // 2 buttons, 2 LEDs, 2 modes:
@@ -11,6 +13,10 @@
 //   Mode 1       -> LED GPIO20 flashes twice
 //   Mode 2       -> LED GPIO21 flashes twice
 //   Button held  -> its LED lit while down (GPIO7 -> LED21, GPIO8 -> LED20)
+//   Idle reminder-> both LEDs blink briefly every 10s after 10 min with no presses
+//   Going asleep -> both LEDs solid ~1s
+// Auto-sleep: idle 60 min while connected (5 min while disconnected) -> BLE off + light sleep.
+//   Any button press wakes + restarts; bonded host reconnects on its own.
 //
 // Wiring:
 //   Buttons: GPIO -> button -> GND (or 3V3 if active-high). See ACTIVE flags.
@@ -35,6 +41,13 @@ const uint16_t BLE_CONN_MIN_INTERVAL = 80;   // x1.25ms = 100ms
 const uint16_t BLE_CONN_MAX_INTERVAL = 160;  // x1.25ms = 200ms
 const uint16_t BLE_CONN_LATENCY      = 4;    // skip up to 4 connection events
 const uint16_t BLE_CONN_TIMEOUT      = 600;  // x10ms = 6000ms supervision timeout
+
+// Idle handling: "idle" = no button change and no connect/disconnect for this long.
+const unsigned long REMINDER_AFTER_MS     = 10UL * 60 * 1000; // idle this long -> start reminder blink
+const unsigned long REMINDER_PERIOD_MS    = 10000;            // blink every 10s
+const unsigned long REMINDER_BLINK_MS     = 50;               // short blink
+const unsigned long SLEEP_CONNECTED_MS    = 60UL * 60 * 1000; // idle + connected -> sleep
+const unsigned long SLEEP_DISCONNECTED_MS = 5UL * 60 * 1000;  // idle + no BLE link -> sleep
 // ----------------------------------------
 
 const int NUM_BUTTONS = sizeof(BUTTON_PINS) / sizeof(BUTTON_PINS[0]);
@@ -48,6 +61,7 @@ unsigned long bothHeldSince = 0;    // 0 = combo timer not running
 bool comboFired = false;            // suppress release keys after a mode switch
 bool connected    = false;
 bool wasConnected = false;
+unsigned long lastActivityMs = 0;   // last button change or connect/disconnect
 
 // HID consumer-control usage IDs
 const uint16_t MEDIA_NEXT     = 0x00B5;
@@ -117,6 +131,25 @@ void sendMediaKey(uint16_t usage) {
   mediaInput->notify();
 }
 
+// Deep sleep can't wake on GPIO7/8 on the C3 (only GPIO0-5), so light sleep + restart on wake.
+void goToSleep() {
+  Serial.println("Idle -> sleeping");
+  Serial.flush();
+  setLed(0, true);
+  setLed(1, true);
+  delay(1000);
+  setLed(0, false);
+  setLed(1, false);
+
+  NimBLEDevice::deinit(true);  // BT controller must be off for light sleep; bonds stay in NVS
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    gpio_wakeup_enable((gpio_num_t)BUTTON_PINS[i], BUTTONS_ACTIVE_LOW ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
+  }
+  esp_sleep_enable_gpio_wakeup();
+  esp_light_sleep_start();
+  ESP.restart();  // clean BLE re-init beats restoring state after sleep
+}
+
 void setup() {
   setCpuFrequencyMhz(CPU_FREQ_MHZ);
   Serial.begin(SERIAL_BAUD);
@@ -164,6 +197,7 @@ void loop() {
 
   if (connected != wasConnected) {
     wasConnected = connected;
+    lastActivityMs = now;
     if (connected) {
       Serial.println("BLE connected");
       flashLeds(true, true);
@@ -182,6 +216,7 @@ void loop() {
     if ((now - lastChangeMs[i]) > DEBOUNCE_MS && reading != stableState[i]) {
       bool wasDown = isPressed(i);
       stableState[i] = reading;
+      lastActivityMs = now;
 
       // key fires on release so the 2s dual-hold combo doesn't also send keys
       if (wasDown && !isPressed(i) && !comboFired && connected) {
@@ -206,6 +241,11 @@ void loop() {
     if (!isPressed(0) && !isPressed(1)) comboFired = false;
   }
 
-  // ---- LED follows its button while held ----
-  for (int i = 0; i < NUM_BUTTONS; i++) setLed(i, isPressed(i));
+  // ---- LED follows its button while held, plus idle "still on" blink ----
+  unsigned long idle = now - lastActivityMs;
+  bool reminder = idle > REMINDER_AFTER_MS && (now % REMINDER_PERIOD_MS) < REMINDER_BLINK_MS;
+  for (int i = 0; i < NUM_BUTTONS; i++) setLed(i, isPressed(i) || reminder);
+
+  // ---- auto-sleep when idle ----
+  if (idle > (connected ? SLEEP_CONNECTED_MS : SLEEP_DISCONNECTED_MS)) goToSleep();
 }

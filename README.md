@@ -18,6 +18,8 @@ BLE media remote for a **Concept2 rowing machine**: two buttons, two LEDs, mount
   - **Mode 2**: volume down / volume up
 - Debounced buttons, keys fire on release
 - LEDs flash twice on BLE connect and on mode switch, and light solid while their button is held
+- "Still on" reminder: after 10 min with no button presses, both LEDs blink briefly every 10s
+- Auto-sleep: after 60 min idle while connected (5 min while disconnected), both LEDs light for 1s, BLE shuts off and the board light-sleeps. Press either button to wake it; it restarts and reconnects to the paired device on its own (the waking press doesn't send a key)
 
 ## Hardware
 
@@ -62,6 +64,10 @@ Power it on, pair `Rowing Remote v2` from your phone/laptop's Bluetooth settings
 On the 120mAh LiPo, unoptimized firmware runs the ESP32-C3 fully active the whole time it's powered on (no sleep, continuous GPIO polling, default BLE connection interval) — roughly **4-8 hours of continuous runtime**. This branch trims that by underclocking the CPU (160→80MHz) and widening the BLE connection interval/latency in the `CONFIG` block, at the cost of up to ~1s of button-press lag. Turning the unit off via the slide switch after each session remains the biggest lever either way, since there's no phantom drain when off.
 
 The largest remaining win — automatic light-sleep between BLE connection events (~1mA idle vs ~20-30mA active) — needs sdkconfig-level changes (`CONFIG_PM_ENABLE`, `CONFIG_FREERTOS_USE_TICKLESS_IDLE`) not exposed by stock Arduino IDE, and hasn't been implemented or tested on hardware. Worth investigating if you want to push runtime further.
+
+If you forget to switch it off, idle auto-sleep (see Features) cuts the draw to an estimated ~0.15-0.3mA for the whole board. That means weeks instead of hours on a forgotten unit. Not measured on hardware yet. The slide switch is still best for storage. Deep sleep would draw less, but the ESP32-C3 can only wake from deep sleep on GPIO0-5, and the buttons are on GPIO7/8.
+
+Battery % isn't reported: the XIAO has no battery-voltage sense. Adding it needs a 2-resistor divider (e.g. 2x 220kΩ) from the battery + pad to a free ADC pin, after which the firmware could report % over the standard BLE Battery Service.
 
 To change pins, timings, or the device name, edit the `CONFIG` block at the top of `RowingMachine.ino`.
 
